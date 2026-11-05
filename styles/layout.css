@@ -1,0 +1,148 @@
+:root {
+  /* default theme color, sourced from setup/unocss.ts */
+  /* override it per deck with `themeConfig: { primary: ... }` in headmatter */
+  --slidev-theme-primary: theme('colors.themePrimary');
+
+  /* Monta Method palette, also sourced from setup/unocss.ts */
+  --monta-paper: theme('colors.montaPaper');
+  --monta-ink: theme('colors.montaInk');
+  --monta-redaction: theme('colors.montaRedaction');
+}
+
+/* Dark mode keeps the same idea with the values inverted: dark paper, light
+   ink, and a bar of ink that still hides the text underneath it. */
+html.dark {
+  --slidev-theme-primary: theme('colors.montaInkDark');
+  --monta-paper: theme('colors.montaPaperDark');
+  --monta-ink: theme('colors.montaInkDark');
+  --monta-redaction: theme('colors.montaRedactionDark');
+}
+
+/* ------------------------------------------------------------------ *
+ * Slide surface
+ * ------------------------------------------------------------------ */
+
+.slidev-layout {
+  background-color: var(--monta-paper);
+  color: var(--monta-ink);
+  font-family: theme('fontFamily.sans');
+}
+
+/* ------------------------------------------------------------------ *
+ * Monta layout: one idea per slide, as large as it can possibly be
+ * ------------------------------------------------------------------ */
+
+.slidev-layout.monta {
+  @apply monta-layout;
+}
+
+.monta-stage {
+  @apply monta-stage;
+}
+
+.monta-content {
+  @apply monta-text;
+
+  /* Replaced on mount by components/MontaStage.vue, which binary-searches
+     the largest size that still fits the slide. */
+  font-size: 96px;
+
+  /* Display leading. Tighter than body text, but Japanese needs room between
+     lines: at 1.12 the kanji start to touch. */
+  line-height: 1.35;
+
+  /* Honour the line breaks written in the markdown source. */
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  line-break: strict;
+  /* Break Japanese at phrase boundaries rather than mid-word. Browsers that
+     do not support `auto-phrase` simply fall back to normal CJK wrapping. */
+  word-break: auto-phrase;
+}
+
+/* Until the text has been fitted, keep it out of sight: otherwise a slide that
+   was measured while hidden paints once at the fallback size and then jumps to
+   the fitted one (visible as a jolt in Firefox). */
+.slidev-layout.monta .monta-content:not(.is-ready) {
+  visibility: hidden;
+}
+
+/* Reset the prose styles inherited from @slidev/client: on a Monta slide every
+   block is display type, not body copy. The extra `.slidev-layout.monta` prefix
+   is needed to outrank the base `p`/`h1` rules (which are more specific than
+   `:where()`). */
+.slidev-layout.monta .monta-content :where(p, h1, h2, h3, h4, h5, h6, ul, ol, li, blockquote, table) {
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+  max-width: none;
+}
+
+/* Slidev flattens paragraphs that contain components into inline runs, so
+   paragraphs are inline here too: the `<br>` written by setup/transformers.ts
+   is what separates the source lines, and the rhythm of a slide stays even
+   whether a line holds a component or not. */
+.slidev-layout.monta .monta-content p {
+  display: inline;
+}
+
+.slidev-layout.monta .monta-content ul,
+.slidev-layout.monta .monta-content ol {
+  padding-left: 0.7em;
+  text-align: left;
+}
+
+.slidev-layout.monta .monta-content code {
+  font-family: theme('fontFamily.mono');
+  font-size: 0.75em;
+}
+
+.slidev-layout.monta .monta-content img {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* A title followed by a subtitle: the subtitle stays out of the way. */
+.slidev-layout.cover.monta .monta-content > :is(h1, h2) + :is(p, h2, h3),
+.slidev-layout.intro.monta .monta-content > :is(h1, h2) + :is(p, h2, h3) {
+  margin-top: 0.3em;
+  font-size: 0.34em;
+  letter-spacing: 0;
+  opacity: 0.55;
+}
+
+/* ------------------------------------------------------------------ *
+ * v-click: unrevealed text is blacked out instead of faded out
+ * ------------------------------------------------------------------ */
+
+.slidev-layout.monta .slidev-vclick-target {
+  /* The bar is drawn by ::after, which needs a positioned box to cover. */
+  position: relative;
+  /* A hidden word is revealed as one piece: never wrap it across lines. */
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
+/* The bar of ink. It sits on top of the text and wipes to the right, so the
+   word appears to be uncovered from its left end. */
+.slidev-layout.monta .slidev-vclick-target::after {
+  content: '';
+  position: absolute;
+  inset: -0.04em 0;
+  background-color: var(--monta-redaction);
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform 0.25s cubic-bezier(0.7, 0, 0.84, 0);
+  pointer-events: none;
+}
+
+.slidev-layout.monta .slidev-vclick-hidden {
+  /* Slidev fades hidden clicks out; keep them opaque and let the bar hide
+     them instead, like a redacted document. */
+  opacity: 1 !important;
+  text-shadow: none;
+}
+
+.slidev-layout.monta .slidev-vclick-hidden::after {
+  transform: scaleX(1);
+}
